@@ -1,6 +1,8 @@
 # 3D Scatter Javascript
 One day, I was sufficiently annoyed at not finding a tool online to make a scatterplot from a list of 3D points, so I made this in Javascript with Plotly.
 
+Link: https://cooljoseph1.github.io/3D-Scatter-Javascript/main.html
+
 ## Usage
 Put a list of 3D points in the textbox on the left. They will get plotted on the right. I tried to make it parse different kinds of inputs. It will definitely work with any of the following formats:
 ```
