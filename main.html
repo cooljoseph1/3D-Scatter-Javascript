@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>3D Scatterplot</title>
+    <style>
+      body {
+        justify-content: center;
+        margin: 0;
+        font-family: Arial, sans-serif;
+      }
+
+      #main {
+        display: flex;
+        flex-direction: row;
+        width: 100vw;
+        height: 100vh;
+      }
+
+      #scatterplot {
+        flex: 1;
+        height: 100%;
+        width: 100%;
+      }
+      
+      #input-container {
+        flex-shrink: 0;
+        height: 100%;
+        width: 250px;
+        padding: 10px;
+        background-color: #f1f1f1;
+        box-sizing: border-box;
+        border-radius: 5px;
+        margin-left: 20px;
+        overflow-y: auto;
+      }
+
+      textarea {
+        width: 100%;
+        height: 50%;
+        box-sizing: border-box;
+        resize: none;
+        margin-bottom: 10px;
+      }
+
+      button {
+        width: 100%;
+        padding: 10px;
+        border: none;
+        background-color: #4caf50;
+        color: white;
+        font-weight: bold;
+        cursor: pointer;
+      }
+    </style>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  </head>
+  <body>
+    <div id="main">
+    <div id="input-container">
+      <textarea
+        id="point-list"
+        placeholder="Paste your points here..."
+      ></textarea>
+      <button onclick="updateScatterplot()">Update Scatterplot</button>
+    </div>
+    <div id="scatterplot"></div>
+    </div>
+
+    <script>
+      // Initial data points
+      let dataPoints = [
+        [1, 1, 1],
+        [-1, -1, 1],
+        [-1, 1, -1],
+        [1, -1, -1],
+      ]
+
+      // Create the layout
+      const layout = {
+        scene: {
+          aspectmode: 'data',
+          xaxis: { title: 'X' },
+          yaxis: { title: 'Y' },
+          zaxis: { title: 'Z' }
+        }
+      }
+
+      const config = {responsive: true}
+
+      // Create the scatterplot
+      function createScatterplot() {
+        // Create the scatterplot trace
+        const trace = {
+          x: dataPoints.map(point => point[0]),
+          y: dataPoints.map(point => point[1]),
+          z: dataPoints.map(point => point[2]),
+          mode: 'markers',
+          type: 'scatter3d',
+          marker: { size: 5, color: 'purple' }
+        }
+
+        // Create the data array
+        const data = [trace]
+
+        // Plot the scatterplot
+        Plotly.newPlot('scatterplot', data, layout, config)
+      }
+
+      // Update scatterplot with new points
+      function updateScatterplot() {
+        const pointList = document.getElementById('point-list').value
+        dataPoints = parsePointList(pointList)
+        console.log(dataPoints)
+
+        // Create the scatterplot trace
+        const trace = {
+          x: dataPoints.map(point => point[0]),
+          y: dataPoints.map(point => point[1]),
+          z: dataPoints.map(point => point[2]),
+          mode: 'markers',
+          type: 'scatter3d',
+          marker: { size: 5, color: 'blue' }
+        }
+
+        // Create the data array
+        const data = [trace]
+
+        Plotly.react('scatterplot', data, layout, config)
+      }
+
+      let timeoutId // Variable to hold the timeout ID
+
+      function debounce(callback, delay) {
+        clearTimeout(timeoutId) // Clear any existing timeout
+
+        timeoutId = setTimeout(callback, delay) // Set a new timeout
+      }
+
+      // Add input event listener to textarea
+      const textarea = document.getElementById('point-list')
+      textarea.addEventListener('input', function () {
+        debounce(updateScatterplot, 300)
+      })
+
+      function convertToFloats(list) {
+        return list.map(row => row.map(value => parseFloat(value)))
+      }
+
+      function isListOf3DPoints(arr) {
+        // Check if the array is non-empty and contains only arrays with three numeric elements
+        return (
+          Array.isArray(arr) &&
+          arr.length > 0 &&
+          arr.every(
+            point =>
+              Array.isArray(point) &&
+              point.length === 3 &&
+              point.every(coord => typeof coord === 'number')
+          )
+        )
+      }
+      // Parse the point list string into an array of objects
+      function parsePointList(input) {
+        try {
+          // Step 1: Parsing as a list of lists
+          let parsedResult = JSON.parse(input)
+          parsedResult = convertToFloats(parsedResult)
+          if (isListOf3DPoints(parsedResult)) {
+            return parsedResult
+          }
+        } catch (error) {}
+
+        try {
+          // Step 2: Converting curly braces to square brackets and parsing again
+          const modifiedInput = input.replace(/{/g, '[').replace(/}/g, ']')
+          const parsedResult = JSON.parse(modifiedInput)
+          parsedResult = convertToFloats(parsedResult)
+          if (isListOf3DPoints(parsedResult)) {
+            return parsedResult
+          }
+        } catch (error) {}
+
+        try {
+          // Step 3: Parsing as CSV with comma delimiters
+          const rows = input.split('\n')
+          const result = rows.map(row => row.split(','))
+          result = convertToFloats(result)
+          if (isListOf3DPoints(result)) {
+            return result
+          }
+        } catch (error) {}
+
+        try {
+          // Step 4: Parsing as CSV with whitespace delimiters
+          const rows = input.split('\n')
+          console.log(rows)
+          const result = rows.map(row => row.split(/\s+/))
+          result = convertToFloats(result)
+          console.log(result)
+          console.log('place 1')
+          if (isListOf3DPoints(result)) {
+            return result
+          }
+        } catch (error) {}
+
+        try {
+          // Step 5: Parsing by breaking on non-numerical characters with newlines separating lists
+          const nonNumericCharsRegex = /[^0-9.-]/g
+          const rows = input.split('\n')
+          let result = rows.map(row =>
+            row.split(nonNumericCharsRegex).filter(Boolean)
+          )
+          result = convertToFloats(result)
+          console.log(result)
+          console.log('place 2')
+
+          result = result.filter(row => Array.isArray(row) && row.length === 3)
+
+          console.log(result)
+          console.log('place 3')
+          return result
+        } catch (error) {}
+        return null
+      }
+
+      // Create the initial scatterplot
+      createScatterplot()
+    </script>
+  </body>
+</html>
